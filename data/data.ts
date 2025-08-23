@@ -14,7 +14,7 @@ export const items = {
 
     exhibition: {
         title: "桃園公車站圖片展覽",
-        url: "https://www.instagram.com/myster.bus/",
+        url: "https://tybusstation.github.io/bus_gallery_web/",
     },
 
     github: {
