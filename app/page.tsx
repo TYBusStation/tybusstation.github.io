@@ -34,9 +34,14 @@ export default function Home() {
                         url={items.tracker.url}
                     />
                     <Card
-                        title={items.exhibition.title}
+                        title={items.taichung_bus.title}
                         icon={<FaLink/>}
-                        url={items.exhibition.url}
+                        url={items.taichung_bus.url}
+                    />
+                    <Card
+                        title={items.mvdis.title}
+                        icon={<FaLink/>}
+                        url={items.mvdis.url}
                     />
                     <Card
                         title={items.github.title}
@@ -52,6 +57,11 @@ export default function Home() {
                         title={items.owner.title}
                         icon={<FaLink/>}
                         url={items.owner.url}
+                    />
+                    <Card
+                        title={items.exhibition.title}
+                        icon={<FaLink/>}
+                        url={items.exhibition.url}
                     />
                 </div>
             </div>

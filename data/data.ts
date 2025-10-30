@@ -1,7 +1,7 @@
 export const config = {
-  title: "TYBusStation",
-  footer: "Made using linktreez",
-  url: "https://github.com/engageintellect/linktreez",
+    title: "TYBusStation",
+    footer: "Made using linktreez",
+    url: "https://github.com/engageintellect/linktreez",
 };
 
 export const tagline = ["桃園", "公車", "程式", "高中生"];
@@ -12,9 +12,14 @@ export const items = {
         url: "https://tybusstation.github.io/bus_scraper/",
     },
 
-    exhibition: {
-        title: "桃園公車站圖片展覽",
-        url: "https://www.instagram.com/myster.bus/",
+    taichung_bus: {
+        title: "台中公車特定路線查詢書籤",
+        url: "https://tybusstation.github.io/taichung_bus/",
+    },
+
+    mvdis: {
+        title: "監理服務網客運公司查詢書籤",
+        url: "https://tybusstation.github.io/mvdis/",
     },
 
     github: {
@@ -30,5 +35,10 @@ export const items = {
     owner: {
         title: "作者資訊",
         url: "https://myster7494.github.io/",
+    },
+
+    exhibition: {
+        title: "桃園公車站圖片展覽",
+        url: "https://www.instagram.com/myster.bus/",
     },
 };
