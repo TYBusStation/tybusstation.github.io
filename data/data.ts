@@ -18,7 +18,7 @@ export const items = {
     },
 
     mvdis: {
-        title: "監理服務網客運公司查詢書籤",
+        title: "監理服務網客運公司查詢",
         url: "https://tybusstation.github.io/mvdis/",
     },
 

@@ -34,14 +34,14 @@ export default function Home() {
                         url={items.tracker.url}
                     />
                     <Card
-                        title={items.taichung_bus.title}
-                        icon={<FaLink/>}
-                        url={items.taichung_bus.url}
-                    />
-                    <Card
                         title={items.mvdis.title}
                         icon={<FaLink/>}
                         url={items.mvdis.url}
+                    />
+                    <Card
+                        title={items.taichung_bus.title}
+                        icon={<FaLink/>}
+                        url={items.taichung_bus.url}
                     />
                     <Card
                         title={items.github.title}
