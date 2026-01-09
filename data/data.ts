@@ -9,22 +9,22 @@ export const tagline = ["桃園", "公車", "程式", "高中生"];
 export const items = {
     tracker: {
         title: "桃園公車站動態追蹤",
-        url: "https://tybusstation.github.io/bus_scraper/",
+        url: "https://tybusstation.github.io/bus_scraper",
     },
 
     taichung_bus: {
         title: "台中公車特定路線查詢書籤",
-        url: "https://tybusstation.github.io/taichung_bus/",
+        url: "https://tybusstation.github.io/taichung_bus",
     },
 
     mvdis: {
         title: "監理服務網客運公司查詢",
-        url: "https://tybusstation.github.io/mvdis/",
+        url: "https://tybusstation.github.io/mvdis",
     },
 
     discord: {
         title: "Discord 公車交流群",
-        url: "https://tybusstation.github.io/discord/",
+        url: "https://tybusstation.github.io/discord",
     },
 
     github: {
@@ -34,15 +34,15 @@ export const items = {
 
     instagram: {
         title: "Instagram",
-        url: "https://www.instagram.com/myster.bus/",
+        url: "https://www.instagram.com/myster.bus",
     },
 
     owner: {
         title: "作者資訊",
-        url: "https://myster7494.github.io/",
+        url: "https://myster7494.github.io",
     },
     exhibition: {
         title: "桃園公車站圖片展覽",
-        url: "https://tybusstation.github.io/bus_gallery_web/",
+        url: "https://tybusstation.github.io/bus_gallery_web",
     },
 };
