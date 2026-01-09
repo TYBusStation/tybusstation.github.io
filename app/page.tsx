@@ -1,9 +1,10 @@
 import Avatar from "./(components)/Avatar";
 import Card from "./(components)/Card";
 
-import {FaGithub, FaInstagram, FaLink,} from "react-icons/fa";
+import {FaDiscord, FaGithub, FaImage, FaInstagram, FaLink,} from "react-icons/fa";
 
 import {items, tagline} from "../data/data";
+import {BsPerson} from "react-icons/bs";
 
 export default function Home() {
     return (
@@ -39,6 +40,11 @@ export default function Home() {
                         url={items.mvdis.url}
                     />
                     <Card
+                        title={items.discord.title}
+                        icon={<FaDiscord/>}
+                        url={items.discord.url}
+                    />
+                    <Card
                         title={items.taichung_bus.title}
                         icon={<FaLink/>}
                         url={items.taichung_bus.url}
@@ -55,12 +61,12 @@ export default function Home() {
                     />
                     <Card
                         title={items.owner.title}
-                        icon={<FaLink/>}
+                        icon={<BsPerson/>}
                         url={items.owner.url}
                     />
                     <Card
                         title={items.exhibition.title}
-                        icon={<FaLink/>}
+                        icon={<FaImage/>}
                         url={items.exhibition.url}
                     />
                 </div>

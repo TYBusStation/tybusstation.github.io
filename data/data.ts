@@ -22,6 +22,11 @@ export const items = {
         url: "https://tybusstation.github.io/mvdis/",
     },
 
+    discord: {
+        title: "Discord 公車交流群",
+        url: "https://tybusstation.github.io/discord/",
+    },
+
     github: {
         title: "GitHub",
         url: "https://github.com/TYBusStation",
@@ -36,9 +41,8 @@ export const items = {
         title: "作者資訊",
         url: "https://myster7494.github.io/",
     },
-
     exhibition: {
         title: "桃園公車站圖片展覽",
-        url: "https://www.instagram.com/myster.bus/",
+        url: "https://tybusstation.github.io/bus_gallery_web/",
     },
 };
