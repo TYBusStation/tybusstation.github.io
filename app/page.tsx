@@ -35,14 +35,19 @@ export default function Home() {
                         url={items.tracker.url}
                     />
                     <Card
-                        title={items.mvdis.title}
+                        title={items.polyline.title}
                         icon={<FaLink/>}
-                        url={items.mvdis.url}
+                        url={items.polyline.url}
                     />
                     <Card
                         title={items.discord.title}
                         icon={<FaDiscord/>}
                         url={items.discord.url}
+                    />
+                    <Card
+                        title={items.mvdis.title}
+                        icon={<FaLink/>}
+                        url={items.mvdis.url}
                     />
                     <Card
                         title={items.taichung_bus.title}

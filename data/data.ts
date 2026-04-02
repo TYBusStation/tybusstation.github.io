@@ -22,6 +22,11 @@ export const items = {
         url: "https://tybusstation.github.io/mvdis",
     },
 
+    polyline: {
+        title: "Encoded Polyline 轉 WKT 工具",
+        url: "https://tybusstation.github.io/polyline",
+    },
+
     discord: {
         title: "Discord 公車交流群",
         url: "https://tybusstation.github.io/discord",
@@ -41,6 +46,7 @@ export const items = {
         title: "作者資訊",
         url: "https://myster7494.github.io",
     },
+
     exhibition: {
         title: "桃園公車站圖片展覽",
         url: "https://tybusstation.github.io/bus_gallery_web",
