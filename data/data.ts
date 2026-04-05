@@ -34,7 +34,7 @@ export const items = {
 
     polyline: {
         title: "Encoded Polyline 轉 WKT 工具",
-        url: "https://tybusstation.github.io/polyline",
+        url: "https://tybusstation.github.io/qgis/polyline",
     },
 
     discord: {

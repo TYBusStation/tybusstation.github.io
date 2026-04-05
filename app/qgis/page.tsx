@@ -18,7 +18,7 @@ export default function QgisPage() {
                     <Card
                         title={items.slides.title}
                         icon={<FaLink/>}
-                        url={items.tracker.url}
+                        url={items.slides.url}
                     />
                     <Card
                         title={items.polyline.title}
