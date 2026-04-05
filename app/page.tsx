@@ -35,9 +35,9 @@ export default function Home() {
                         url={items.tracker.url}
                     />
                     <Card
-                        title={items.polyline.title}
+                        title={items.qgis.title}
                         icon={<FaLink/>}
-                        url={items.polyline.url}
+                        url={items.qgis.url}
                     />
                     <Card
                         title={items.discord.title}

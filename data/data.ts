@@ -7,6 +7,16 @@ export const config = {
 export const tagline = ["桃園", "公車", "程式", "高中生"];
 
 export const items = {
+    slides: {
+        title: "教學投影片",
+        url: "https://drive.google.com/drive/folders/1eozhh9E4El1jBf-fSSC-sCDUKifLseAC?usp=drive_link",
+    },
+
+    qgis: {
+        title: "QGIS 繪製路線教學",
+        url: "https://tybusstation.github.io/qgis",
+    },
+
     tracker: {
         title: "桃園公車站動態追蹤",
         url: "https://tybusstation.github.io/bus_scraper",
