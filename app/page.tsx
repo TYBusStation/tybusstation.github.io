@@ -30,6 +30,11 @@ export default function Home() {
 
                 <div className="w-full flex gap-2 my-2 flex-col items-center justify-center pb-2 lg:pb-10">
                     <Card
+                        title={items.pids.title}
+                        icon={<FaLink/>}
+                        url={items.pids.url}
+                    />
+                    <Card
                         title={items.tracker.title}
                         icon={<FaLink/>}
                         url={items.tracker.url}

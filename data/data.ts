@@ -12,6 +12,11 @@ export const items = {
         url: "https://drive.google.com/drive/folders/1eozhh9E4El1jBf-fSSC-sCDUKifLseAC?usp=drive_link",
     },
 
+    pids: {
+        title: "公車 PIDS 模擬器",
+        url: "https://tybusstation.github.io/bus_pids_simulator",
+    },
+
     qgis: {
         title: "QGIS 繪製路線教學",
         url: "https://tybusstation.github.io/qgis",
