@@ -4,8 +4,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {CircleMarker, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents} from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import {ChevronLeft, Menu, RotateCcw, Search, Trophy, X} from 'lucide-react';
-// Layout Wrapper
+import {Loader2, MapPin, Menu, RotateCcw, Search, Star, Trophy} from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 interface BusStation {
@@ -39,6 +38,17 @@ interface ProgressRecord {
     best: { accuracy: number; seconds: number; grade: string; } | null;
     current: { foundNames: string[]; seconds: number; isSettled: boolean; } | null;
 }
+
+const CITIES = [
+    {name: '01桃園市'},
+    {name: '02臺北市'},
+    {name: '03新北市'},
+    {name: '04台中市'},
+    {name: '50公路客運'}
+];
+
+const API_BASE = "https://myster.freeddns.org:25566";
+// const API_BASE = "http://192.168.1.249:25567";
 
 const getGrade = (accuracy: number) => {
     if (accuracy <= 0) return '--';
@@ -87,12 +97,10 @@ function MapController({targetPos, bounds}: { targetPos: [number, number] | null
     return null;
 }
 
-function OptimizedStationsLayer({stations, foundNames, isSettled, currentSet}: any) {
+function OptimizedStationsLayer({stations, foundNames, isSettled}: any) {
     const map = useMap();
     const [zoom, setZoom] = useState(map.getZoom());
     const [bounds, setBounds] = useState(map.getBounds());
-
-    // 定義站名顯示的縮放門檻 (例如 15 以上才顯示文字)
     const LABEL_THRESHOLD_ZOOM = 15;
 
     useMapEvents({
@@ -103,11 +111,10 @@ function OptimizedStationsLayer({stations, foundNames, isSettled, currentSet}: a
     const scale = useMemo(() => Math.max(0.3, Math.min(2.5, Math.pow(1.2, zoom - 14))), [zoom]);
 
     const visibleStations = useMemo(() => {
-        const isMobile = window.innerWidth < 768;
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         return stations.filter((s: any, idx: number) => {
             const pos = s.coords[0];
             if (!bounds.contains(L.latLng(pos[0], pos[1]))) return false;
-
             const isFound = foundNames.has(normalizeName(s.name));
             if (!isFound && !isSettled) {
                 if (isMobile) {
@@ -141,7 +148,6 @@ function OptimizedStationsLayer({stations, foundNames, isSettled, currentSet}: a
                         weight: Math.max(1, 2 * scale),
                     }}
                 >
-                    {/* 修改處：加上 zoom >= LABEL_THRESHOLD_ZOOM 判斷 */}
                     {(s.isFound || s.showCorrect) && zoom >= LABEL_THRESHOLD_ZOOM && (
                         <Tooltip permanent direction="right" offset={[10 * scale, 0]} className="minimal-label">
                             <span className={`station-text ${s.showCorrect ? 'text-rose-500' : 'text-indigo-900'}`}
@@ -170,7 +176,13 @@ function OptimizedStationsLayer({stations, foundNames, isSettled, currentSet}: a
 }
 
 export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[] }) {
-    const [activeSetIdx, setActiveSetIdx] = useState<number | null>(null);
+    const [view, setView] = useState<'home' | 'city' | 'game'>('home');
+    const [selectedCityName, setSelectedCityName] = useState<string | null>(null);
+    const [fetchedRoutes, setFetchedRoutes] = useState<RouteSet[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [citySearchTerm, setCitySearchTerm] = useState("");
+
+    const [activeSet, setActiveSet] = useState<RouteSet | null>(null);
     const [gameStarted, setGameStarted] = useState(false);
     const [foundNames, setFoundNames] = useState<Set<string>>(new Set());
     const [seconds, setSeconds] = useState(0);
@@ -188,12 +200,53 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
         if (saved) setHistory(JSON.parse(saved));
     }, []);
 
-    const currentSet = activeSetIdx !== null ? initialSets[activeSetIdx] : null;
+    const fetchCityRoutes = async (cityName: string) => {
+        setLoading(true);
+        setSelectedCityName(cityName);
+        setCitySearchTerm("");
+        setView('city');
+        try {
+            const res = await fetch(`${API_BASE}/simulator_data?city=${encodeURIComponent(cityName)}`);
+            const data = await res.json();
+            const formatted: RouteSet[] = data.map((r: BusRoute) => ({
+                name: r.name,
+                routes: [r]
+            }));
+            setFetchedRoutes(formatted);
+        } catch (e) {
+            alert("獲取路線失敗");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredCityRoutes = useMemo(() => {
+        const term = citySearchTerm.trim();
+        if (!term) return fetchedRoutes;
+        let regex: RegExp;
+        try {
+            regex = new RegExp(term, 'i');
+        } catch (e) {
+            return fetchedRoutes.filter(rs => rs.name.toLowerCase().includes(term.toLowerCase()));
+        }
+        return fetchedRoutes.filter(rs => regex.test(rs.name));
+    }, [fetchedRoutes, citySearchTerm]);
+
+    const searchResultSet = useMemo((): RouteSet | null => {
+        if (filteredCityRoutes.length === 0) return null;
+        const name = citySearchTerm.trim()
+            ? `${selectedCityName?.substring(2)} - ${citySearchTerm}`
+            : `${selectedCityName?.substring(2)}`;
+        return {
+            name,
+            routes: filteredCityRoutes.flatMap(rs => rs.routes)
+        };
+    }, [filteredCityRoutes, citySearchTerm, selectedCityName]);
 
     const gameData = useMemo(() => {
-        if (!currentSet) return {stations: [], totalCount: 0, bounds: null};
+        if (!activeSet) return {stations: [], totalCount: 0, bounds: null};
         const nameMap: Record<string, GameStation> = {};
-        currentSet.routes.forEach(route => {
+        activeSet.routes.forEach(route => {
             [...(route.stations?.go || []), ...(route.stations?.back || [])].forEach(s => {
                 const norm = normalizeName(s.name);
                 if (!nameMap[norm]) {
@@ -209,27 +262,16 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
         const stations = Object.values(nameMap);
         const allCoords = stations.flatMap(s => s.coords);
         return {stations, totalCount: stations.length, bounds: allCoords.length ? L.latLngBounds(allCoords) : null};
-    }, [currentSet]);
+    }, [activeSet]);
 
     const accuracy = useMemo(() => {
         if (!gameData.totalCount) return 0;
         return Number(((foundNames.size / gameData.totalCount) * 100).toFixed(1));
     }, [foundNames.size, gameData.totalCount]);
 
-    useEffect(() => {
-        if (gameStarted && !isSettled && foundNames.size > 0) {
-            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-        } else {
-            if (timerRef.current) clearInterval(timerRef.current);
-        }
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [gameStarted, isSettled, foundNames.size]);
-
     const autoSave = useCallback((settle: boolean) => {
-        if (!currentSet) return;
-        const key = currentSet.name;
+        if (!activeSet) return;
+        const key = activeSet.name;
         const currentHistory = JSON.parse(localStorage.getItem('typebus_v9_history') || '{}');
         const newCurrent = {foundNames: Array.from(foundNames), seconds, isSettled: settle};
         let newBest = currentHistory[key]?.best || null;
@@ -242,14 +284,24 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
         setHistory(updated);
         localStorage.setItem('typebus_v9_history', JSON.stringify(updated));
         if (settle) setIsSettled(true);
-    }, [currentSet, foundNames, seconds, accuracy]);
+    }, [activeSet, foundNames, seconds, accuracy]);
+
+    useEffect(() => {
+        if (gameStarted && !isSettled && foundNames.size > 0) {
+            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [gameStarted, isSettled, foundNames.size]);
 
     useEffect(() => {
         if (gameStarted && !isSettled && foundNames.size > 0) autoSave(false);
     }, [foundNames.size, autoSave, gameStarted, isSettled]);
 
-    const startGame = (idx: number, resume: boolean) => {
-        const set = initialSets[idx];
+    const startGame = (set: RouteSet, resume: boolean) => {
         const rec = history[set.name];
         setInputValue("");
         setFeedback(null);
@@ -261,10 +313,11 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
             setFoundNames(new Set());
             setSeconds(0);
         }
-        setActiveSetIdx(idx);
+        setActiveSet(set);
         setIsSettled(false);
         setGameStarted(true);
-        if (window.innerWidth < 768) setShowSidebar(false);
+        setView('game');
+        if (typeof window !== 'undefined' && window.innerWidth < 768) setShowSidebar(false);
     };
 
     const handleGuess = (e: React.FormEvent) => {
@@ -285,61 +338,118 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
         }
     };
 
-    if (!gameStarted) return (
-        /* 將 min-h-screen 確保內容至少撐滿螢幕，並移除 overflow-y-auto 讓最外層捲動 */
-        <div className="min-h-screen bg-slate-50 p-4 md:p-12 flex flex-col items-center font-sans">
-            <div className="max-w-6xl w-full">
-                <header className="mb-8 md:mb-16">
-                    <h1 className="text-6xl md:text-9xl font-black text-slate-900 italic tracking-tighter">TypeBus</h1>
-                </header>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                    {initialSets.map((set, idx) => {
-                        const rec = history[set.name];
-                        const hasCurrent = rec?.current && !rec.current.isSettled && (rec.current.foundNames.length > 0 || rec.current.seconds > 0);
-                        const currentAcc = rec?.current && !rec.current.isSettled
-                            ? ((rec.current.foundNames.length / (set.routes.reduce((acc, r) => acc + (r.stations.go.length + r.stations.back.length), 0) / 2 || 1)) * 100).toFixed(1)
-                            : "0.0";
-                        return (
-                            <div key={idx}
-                                 className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 flex flex-col border-2 border-transparent hover:border-indigo-600 transition-all">
-                                <div className="flex justify-between items-start mb-6">
-                                    <h3 className="text-2xl md:text-3xl font-black text-slate-800 leading-tight pr-4">{set.name}</h3>
-                                    {rec?.best && (
-                                        <div
-                                            className="bg-slate-900 text-white p-3 rounded-2xl text-center min-w-[75px] shadow-lg">
-                                            <div className="text-xl font-black leading-none mb-1">{rec.best.grade}</div>
-                                            <div
-                                                className="text-[12px] font-mono mb-1">{rec.best.accuracy}%
-                                            </div>
-                                            <div
-                                                className="text-[10px] font-bold border-t border-white/20 pt-1 mt-1">{formatTime(rec.best.seconds)}</div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="text-slate-400 text-sm font-bold mb-10">{set.routes.length} 條路線</div>
-                                <div className="flex flex-col gap-3 mt-auto">
-                                    {hasCurrent ? (
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => startGame(idx, true)}
-                                                    className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-black shadow-lg shadow-indigo-100 transition-colors uppercase tracking-widest">
-                                                繼續挑戰 <span className="ml-2 text-xs opacity-70">{currentAcc}%</span>
-                                            </button>
-                                            <button onClick={() => {
-                                                if (confirm("確定重開？")) startGame(idx, false);
-                                            }}
-                                                    className="w-14 h-14 rounded-2xl border-2 border-slate-200 text-slate-400 hover:bg-slate-50 flex items-center justify-center transition-all">
-                                                <RotateCcw size={20}/>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={() => startGame(idx, false)}
-                                                className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-black text-white text-lg font-black shadow-lg transition-colors uppercase tracking-widest">開始遊戲</button>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
+    const RouteCard = ({set, isHighlight = false}: { set: RouteSet, isHighlight?: boolean }) => {
+        const rec = history[set.name];
+        const hasCurrent = rec?.current && !rec.current.isSettled && (rec.current.foundNames.length > 0 || rec.current.seconds > 0);
+        const totalStations = set.routes.reduce((acc, r) => acc + (r.stations.go.length + r.stations.back.length), 0) / 2 || 1;
+        const currentAcc = rec?.current && !rec.current.isSettled ? ((rec.current.foundNames.length / totalStations) * 100).toFixed(1) : "0.0";
+        return (
+            <div
+                className={`p-8 rounded-[2rem] shadow-xl border-2 transition-all flex flex-col h-full ${isHighlight ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-transparent hover:border-indigo-600'}`}>
+                <div className="flex justify-between items-start mb-6">
+                    <div className="flex-1 pr-4 h-[4.5rem] flex items-center overflow-hidden">
+                        <h3 className={`font-black leading-tight break-words line-clamp-2
+            ${isHighlight ? 'text-indigo-900' : 'text-slate-800'} 
+            ${set.name.length > 10 ? 'text-lg sm:text-xl' : 'text-2xl'}
+        `}>
+                            {set.name}
+                        </h3>
+                    </div>
+                    {rec?.best && (
+                        <div
+                            className="bg-slate-900 text-white p-3 rounded-2xl text-center min-w-[75px] shadow-lg shrink-0">
+                            <div className="text-xl font-black leading-none mb-1">{rec.best.grade}</div>
+                            <div className="text-[12px] font-mono mb-1">{rec.best.accuracy}%</div>
+                            <div
+                                className="text-[10px] font-bold border-t border-white/20 pt-1 mt-1">{formatTime(rec.best.seconds)}</div>
+                        </div>
+                    )}
                 </div>
+                <div className="text-slate-400 text-sm font-bold mb-10">{set.routes.length} 條路線</div>
+                <div className="flex flex-col gap-3 mt-auto">
+                    {hasCurrent ? (
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => startGame(set, true)}
+                                    className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-black shadow-lg transition-colors uppercase tracking-widest">
+                                繼續挑戰 <span className="ml-2 text-xs opacity-70">{currentAcc}%</span>
+                            </button>
+                            <button onClick={() => {
+                                if (confirm("確定重開？")) startGame(set, false);
+                            }}
+                                    className="w-14 h-14 rounded-2xl border-2 border-slate-200 text-slate-400 hover:bg-slate-50 flex items-center justify-center transition-all">
+                                <RotateCcw size={20}/></button>
+                        </div>
+                    ) : (
+                        <button onClick={() => startGame(set, false)}
+                                className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-black text-white text-lg font-black shadow-lg transition-colors uppercase tracking-widest">開始遊戲</button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    if (view === 'home') return (
+        <div className="min-h-screen bg-slate-50 p-4 md:p-12 flex flex-col items-center font-sans overflow-y-auto">
+            <div className="max-w-6xl w-full">
+                <header className="mb-12 md:mb-16 text-center">
+                    <h1 className="text-7xl md:text-9xl font-black text-slate-900 italic tracking-tighter mb-4">TypeBus</h1>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">選擇城市或精選路線</p>
+                </header>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-16">
+                    {CITIES.map((city) => (
+                        <button key={city.name} onClick={() => fetchCityRoutes(city.name)}
+                                className="group bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 flex flex-col items-center border-2 border-transparent hover:border-indigo-600 transition-all">
+                            <MapPin className="text-slate-200 group-hover:text-indigo-100 transition-colors mb-3"
+                                    size={40}/>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800">{city.name.substring(2)}</h3>
+                            <span
+                                className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{city.name.substring(0, 2)} CITY</span>
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-3 mb-8">
+                    <Star className="text-amber-400 fill-amber-400" size={24}/>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">精選挑戰</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {initialSets.map((set, idx) => <RouteCard key={idx} set={set}/>)}
+                </div>
+            </div>
+        </div>
+    );
+
+    if (view === 'city') return (
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 flex flex-col items-center font-sans overflow-y-auto">
+            <div className="max-w-6xl w-full">
+                <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setView('home')}
+                                className="px-6 h-12 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-colors shadow-lg">
+                            返回首頁
+                        </button>
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-900 leading-none">{selectedCityName?.substring(2)}</h2>
+                            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">區域路線挑戰</p>
+                        </div>
+                    </div>
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                        <input type="text" value={citySearchTerm} onChange={(e) => setCitySearchTerm(e.target.value)}
+                               placeholder="搜尋路線 (支援 Regex)..."
+                               className="w-full h-14 pl-12 pr-4 bg-white rounded-2xl shadow-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-all border border-slate-100"/>
+                    </div>
+                </header>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="animate-spin text-indigo-600 mb-4" size={48}/>
+                        <p className="font-black text-slate-400">正在獲取 {selectedCityName} 資料...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {searchResultSet && <RouteCard set={searchResultSet} isHighlight={true}/>}
+                        {filteredCityRoutes.map((set, idx) => <RouteCard key={idx} set={set}/>)}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -352,11 +462,16 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
                     <button onClick={() => {
                         autoSave(isSettled);
                         setGameStarted(false);
-                        setActiveSetIdx(null);
-                    }} className="p-2 hover:bg-slate-100 rounded-full text-slate-600"><ChevronLeft size={24}/></button>
-                    <h2 className="font-black text-base md:text-lg truncate px-2">{currentSet?.name}</h2>
-                    <button onClick={() => setShowSidebar(false)} className="md:hidden p-2 text-slate-600"><X
-                        size={24}/></button>
+                        setActiveSet(null);
+                        setView(selectedCityName ? 'city' : 'home');
+                    }}
+                            className="px-5 h-10 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 uppercase tracking-widest">
+                        離開遊戲
+                    </button>
+                    <h2 className="font-black text-base md:text-lg truncate px-4 flex-1 text-center">{activeSet?.name}</h2>
+                    <button onClick={() => setShowSidebar(false)}
+                            className="md:hidden px-4 h-10 bg-slate-100 text-slate-600 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm">收起選單
+                    </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-8">
                     <div className="flex justify-between items-center bg-slate-50 p-4 rounded-3xl">
@@ -394,14 +509,21 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
                         <div>
                             <h4 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">包含路線</h4>
                             <div className="flex flex-wrap gap-2">
-                                {currentSet?.routes.map((r, i) => (
-                                    <div key={r.id}
-                                         className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100 text-xs font-bold text-slate-600">
-                                        <div className="w-2 h-2 rounded-full"
-                                             style={{backgroundColor: getRouteColor(i, currentSet.routes.length)}}/>
-                                        {r.name}
-                                    </div>
-                                ))}
+                                {activeSet?.routes.map((r, i) => {
+                                    const routeStationNames = new Set([...(r.stations.go || []), ...(r.stations.back || [])].map(s => normalizeName(s.name)));
+                                    const foundInRoute = Array.from(routeStationNames).filter(name => foundNames.has(name)).length;
+                                    const pct = routeStationNames.size > 0 ? Math.floor((foundInRoute / routeStationNames.size) * 100) : 0;
+                                    return (
+                                        <div key={r.id}
+                                             className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100 text-[10px] font-bold">
+                                            <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                 style={{backgroundColor: getRouteColor(i, activeSet.routes.length)}}/>
+                                            <span className="text-slate-600 truncate max-w-[80px]">{r.name}</span>
+                                            <span
+                                                className="text-indigo-500 border-l border-slate-200 pl-1 ml-1">{pct}%</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -426,15 +548,14 @@ export default function TypeBus({routeSets: initialSets}: { routeSets: RouteSet[
                                 className="absolute top-4 left-4 z-[1000] bg-white p-3 rounded-xl shadow-xl text-slate-700 border-2 border-slate-100 active:scale-95 transition-transform">
                             <Menu size={20}/></button>
                     )}
-                    {currentSet?.routes.map((r, i) => {
-                        const color = getRouteColor(i, currentSet.routes.length);
+                    {activeSet?.routes.map((r, i) => {
+                        const color = getRouteColor(i, activeSet.routes.length);
                         return <React.Fragment key={r.id}>
                             <Polyline positions={parseWkt(r.path.go)} color={color} weight={3} opacity={0.5}/>
                             <Polyline positions={parseWkt(r.path.back)} color={color} weight={3} opacity={0.5}/>
                         </React.Fragment>
                     })}
-                    <OptimizedStationsLayer stations={gameData.stations} foundNames={foundNames} isSettled={isSettled}
-                                            currentSet={currentSet}/>
+                    <OptimizedStationsLayer stations={gameData.stations} foundNames={foundNames} isSettled={isSettled}/>
                 </MapContainer>
                 {!isSettled && (
                     <div className="absolute bottom-6 md:bottom-8 left-0 right-0 px-4 z-[1500] pointer-events-none">
