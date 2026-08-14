@@ -53,10 +53,10 @@ const API_BASE = "https://myster.freeddns.org:25566";
 const getGrade = (accuracy: number) => {
     if (accuracy <= 0) return '--';
     const groups = [
-        {symbol: 'ㄦ', step: 0.9}, {symbol: 'ㄋ', step: 3.25},
-        {symbol: 'ㄊ', step: 3.25}, {symbol: 'ㄉ', step: 3.25},
-        {symbol: 'ㄈ', step: 3.25}, {symbol: 'ㄇ', step: 3.25},
-        {symbol: 'ㄆ', step: 3.25}, {symbol: 'ㄅ', step: 3.25},
+        {symbol: 'ㄦ', step: 2.5}, {symbol: 'ㄋ', step: 2.5},
+        {symbol: 'ㄊ', step: 2.5}, {symbol: 'ㄉ', step: 2.5},
+        {symbol: 'ㄈ', step: 2.5}, {symbol: 'ㄇ', step: 2.5},
+        {symbol: 'ㄆ', step: 2.5}, {symbol: 'ㄅ', step: 2.5},
     ];
     const suffixes = ['--', '-', '', '+', '++'];
     let cumulative = 0;
